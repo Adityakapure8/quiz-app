@@ -16,7 +16,7 @@ import io
 import json
 
 # ==================== APP CONFIG ====================
-:app = Flask(__name__)
+app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get(
     'SECRET_KEY',
     'dev-secret-key-change-in-prod-9f8a7b6c5d4e3f2a1b0c'
