@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Result - MCQ Arena{% endblock %}
+
+{% block content %}
+<div class="result-wrapper">
+    <div class="result-card tilt-card">
+        <div class="trophy">🏆</div>
+        <h1 class="result-title">Quiz Completed!</h1>
+        <p class="result-sub">Great effort, {{ user.username }}!</p>
+
+        <div class="score-circle">
+            <svg viewBox="0 0 200 200" class="score-svg">
+                <circle cx="100" cy="100" r="85" class="score-track"/>
+                <circle cx="100" cy="100" r="85" class="score-progress"
+                        style="stroke-dashoffset: {{ 534 - (534 * pct / 100) }}"/>
+            </svg>
+            <div class="score-text">
+                <div class="score-pct">{{ pct }}%</div>
+                <div class="score-frac">{{ user.score }}/{{ user.total_questions }}</div>
+            </div>
+        </div>
+
+        <div class="result-stats">
+            <div class="rs-item"><span>Rank</span><strong>#{{ rank }} of {{ total }}</strong></div>
+            <div class="rs-item"><span>Correct</span><strong>{{ user.score }}</strong></div>
+            <div class="rs-item"><span>Wrong</span><strong>{{ user.total_questions - user.score }}</strong></div>
+            <div class="rs-item"><span>Percentage</span><strong>{{ pct }}%</strong></div>
+        </div>
+
+        <div class="result-actions">
+            <a href="{{ url_for('leaderboard') }}" class="btn-primary btn-3d">View Leaderboard →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

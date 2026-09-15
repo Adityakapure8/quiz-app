@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard - MCQ Arena{% endblock %}
+
+{% block content %}
+<h1 class="page-title">🏆 <span class="gradient-text">Leaderboard</span></h1>
+
+<div class="leaderboard">
+    {% for l in leaders %}
+    <div class="lb-row tilt-card {% if l.rank == 1 %}gold{% elif l.rank == 2 %}silver{% elif l.rank == 3 %}bronze{% endif %}">
+        <div class="lb-rank">
+            {% if l.rank == 1 %}🥇
+            {% elif l.rank == 2 %}🥈
+            {% elif l.rank == 3 %}🥉
+            {% else %}#{{ l.rank }}{% endif %}
+        </div>
+        <div class="lb-name">{{ l.username }}</div>
+        <div class="lb-score">{{ l.score }}/{{ l.total }}</div>
+        <div class="lb-pct">{{ l.pct }}%</div>
+    </div>
+    {% endfor %}
+
+    {% if not leaders %}
+        <p class="empty-note">No results yet. Be the first to complete the quiz!</p>
+    {% endif %}
+</div>
+{% endblock %}

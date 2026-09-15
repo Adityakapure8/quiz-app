@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - MCQ Arena{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <h1 class="hero-title">Hello, <span class="gradient-text">{{ user.username }}</span></h1>
+
+    {% if user.has_attempted %}
+        <p class="hero-sub">You have completed the quiz.</p>
+        <div class="mini-score">
+            <span class="score-big">{{ user.score }}</span>
+            <span class="score-of">/ {{ user.total_questions }}</span>
+        </div>
+        <a href="{{ url_for('result') }}" class="btn-primary btn-3d btn-large">View Result →</a>
+    {% else %}
+        <p class="hero-sub">Ready to test your knowledge? The quiz awaits!</p>
+
+        <div class="rules-card tilt-card">
+            <h3>⚠️ Important Rules</h3>
+            <ul>
+                <li>You have <strong>ONE attempt only</strong></li>
+                <li>Do not switch tabs — quiz will auto-submit</li>
+                <li>Copying / right-click is disabled</li>
+                <li>You cannot go back after submitting</li>
+                <li>Timer starts as soon as you begin</li>
+            </ul>
+        </div>
+
+        <a href="{{ url_for('quiz') }}"
+           class="btn-primary btn-3d btn-large"
+           onclick="return confirm('Start the quiz? You can only attempt ONCE.')">
+            🚀 Start Quiz
+        </a>
+    {% endif %}
+</div>
+{% endblock %}

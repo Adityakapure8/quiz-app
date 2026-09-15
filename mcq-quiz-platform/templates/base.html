@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}MCQ Quiz Arena{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="bg-animation"></div>
+
+<nav class="navbar">
+    <div class="nav-brand">
+        <span class="logo-3d">🎯</span>
+        <span>MCQ <span class="gradient-text">Arena</span></span>
+    </div>
+    <div class="nav-links">
+        {% if current_user.is_authenticated %}
+            {% if current_user.is_admin %}
+                <a href="{{ url_for('admin_dashboard') }}" class="nav-link">Dashboard</a>
+            {% else %}
+                <a href="{{ url_for('user_dashboard') }}" class="nav-link">Home</a>
+                <a href="{{ url_for('leaderboard') }}" class="nav-link">Leaderboard</a>
+            {% endif %}
+            <span class="user-badge">{{ current_user.username }}</span>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for cat, msg in messages %}
+                <div class="flash flash-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+
+<script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Admin - MCQ Arena{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1>Admin <span class="gradient-text">Control Panel</span></h1>
+    <a href="{{ url_for('download_excel') }}" class="btn-success btn-3d">⬇ Download Excel Results</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card tilt-card">
+        <div class="stat-icon">❓</div>
+        <div class="stat-num">{{ questions|length }}</div>
+        <div class="stat-label">Total Questions</div>
+    </div>
+    <div class="stat-card tilt-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-num">{{ users|length }}</div>
+        <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card tilt-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-num">{{ users|selectattr('has_attempted')|list|length }}</div>
+        <div class="stat-label">Attempted</div>
+    </div>
+    <div class="stat-card tilt-card">
+        <div class="stat-icon">⏳</div>
+        <div class="stat-num">{{ users|rejectattr('has_attempted')|list|length }}</div>
+        <div class="stat-label">Pending</div>
+    </div>
+</div>
+
+<div class="admin-grid">
+    <div class="panel tilt-card">
+        <h2>➕ Add Question</h2>
+        <form id="addQuestionForm" class="stack-form">
+            <textarea name="question_text" placeholder="Question text..." required rows="3"></textarea>
+            <input name="option_a" placeholder="Option A" required>
+            <input name="option_b" placeholder="Option B" required>
+            <input name="option_c" placeholder="Option C" required>
+            <input name="option_d" placeholder="Option D" required>
+            <select name="correct_answer" required>
+                <option value="">-- Correct Answer --</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+            </select>
+            <button type="submit" class="btn-primary btn-3d">Add Question</button>
+        </form>
+    </div>
+
+    <div class="panel tilt-card">
+        <h2>👤 Add User</h2>
+        <form id="addUserForm" class="stack-form">
+            <input name="username" placeholder="Username" required autocomplete="off">
+            <input name="password" type="password" placeholder="Password" required>
+            <button type="submit" class="btn-primary btn-3d">Create User</button>
+        </form>
+
+        <h3 class="mt-2">Existing Users ({{ users|length }})</h3>
+        <div class="user-list">
+            {% for u in users %}
+            <div class="user-row">
+                <span class="user-name">{{ u.username }}</span>
+                <span class="user-status {% if u.has_attempted %}done{% endif %}">
+                    {% if u.has_attempted %}✓ {{ u.score }}/{{ u.total_questions }}{% else %}Pending{% endif %}
+                </span>
+                <div class="row-actions">
+                    <button class="btn-mini btn-reset" data-uid="{{ u.id }}">Reset</button>
+                    <button class="btn-mini btn-del" data-uid="{{ u.id }}">✕</button>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not users %}
+                <p class="empty-note">No users yet. Add one above.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <h2>📋 Questions ({{ questions|length }})</h2>
+    <div class="questions-list">
+        {% for q in questions %}
+        <div class="q-row">
+            <div class="q-text"><strong>Q{{ loop.index }}.</strong> {{ q.question_text }}</div>
+            <div class="q-meta">Answer: <span class="badge-correct">{{ q.correct_answer }}</span></div>
+            <button class="btn-mini btn-del" data-qid="{{ q.id }}">Delete</button>
+        </div>
+        {% endfor %}
+        {% if not questions %}
+            <p class="empty-note">No questions yet. Add some above.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add question
+document.getElementById('addQuestionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+        const res = await fetch('/admin/add_question', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const j = await res.json();
+        if (res.ok && j.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (j.error || 'Unknown error'));
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+        btn.disabled = false;
+    }
+});
+
+// Add user
+document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+        const res = await fetch('/admin/add_user', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const j = await res.json();
+        if (res.ok && j.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (j.error || 'Unknown error'));
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+        btn.disabled = false;
+    }
+});
+
+// Delete question
+document.querySelectorAll('button[data-qid]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if (!confirm('Delete this question?')) return;
+        const id = btn.dataset.qid;
+        const res = await fetch(`/admin/delete_question/${id}`, {method: 'DELETE'});
+        if (res.ok) location.reload();
+        else alert('Failed to delete');
+    });
+});
+
+// Delete user
+document.querySelectorAll('button.btn-del[data-uid]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if (!confirm('Delete this user?')) return;
+        const id = btn.dataset.uid;
+        const res = await fetch(`/admin/delete_user/${id}`, {method: 'DELETE'});
+        if (res.ok) location.reload();
+        else alert('Failed to delete');
+    });
+});
+
+// Reset user
+document.querySelectorAll('button.btn-reset[data-uid]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if (!confirm('Reset this user so they can attempt again?')) return;
+        const id = btn.dataset.uid;
+        const res = await fetch(`/admin/reset_user/${id}`, {method: 'POST'});
+        if (res.ok) location.reload();
+        else alert('Failed to reset');
+    });
+});
+</script>
+{% endblock %}

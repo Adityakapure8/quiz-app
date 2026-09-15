@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Quiz - MCQ Arena{% endblock %}
+
+{% block content %}
+<div class="quiz-wrapper" id="quizWrapper">
+    <div class="quiz-header">
+        <div class="progress-info"><span id="qCounter">Question 1 / {{ questions|length }}</span></div>
+        <div class="progress-bar-outer">
+            <div class="progress-bar-inner" id="progressBar"></div>
+        </div>
+        <div class="timer" id="timer">⏱ 00:00</div>
+    </div>
+
+    <div class="question-card tilt-card" id="questionCard">
+        <h2 class="question-text" id="questionText"></h2>
+        <div class="options-grid" id="optionsGrid"></div>
+    </div>
+
+    <div class="quiz-nav">
+        <button class="btn-secondary btn-3d" id="prevBtn" type="button">← Previous</button>
+        <button class="btn-primary btn-3d" id="nextBtn" type="button">Next →</button>
+        <button class="btn-success btn-3d hidden" id="submitBtn" type="button">✓ Submit Quiz</button>
+    </div>
+</div>
+
+<div class="overlay hidden" id="tabOverlay">
+    <div class="overlay-card">
+        <h2>🚫 Tab Switch Detected!</h2>
+        <p>You switched tabs. The quiz is being auto-submitted.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const questions = {{ questions|tojson }};
+    const answers = {};
+    let currentIdx = 0;
+    let seconds = 0;
+    let submitted = false;
+    const TOTAL_TIME = questions.length * 60;
+
+    const elCounter = document.getElementById('qCounter');
+    const elProgress = document.getElementById('progressBar');
+    const elTimer = document.getElementById('timer');
+    const elQuestion = document.getElementById('questionText');
+    const elOptions = document.getElementById('optionsGrid');
+    const elPrev = document.getElementById('prevBtn');
+    const elNext = document.getElementById('nextBtn');
+    const elSubmit = document.getElementById('submitBtn');
+    const elCard = document.getElementById('questionCard');
+    const elOverlay = document.getElementById('tabOverlay');
+
+    function startTimer() {
+        setInterval(() => {
+            if (submitted) return;
+            seconds++;
+            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            elTimer.textContent = `⏱ ${m}:${s}`;
+            if (seconds >= TOTAL_TIME) submitQuiz(true);
+        }, 1000);
+    }
+
+    function render() {
+        const q = questions[currentIdx];
+        elQuestion.textContent = q.question_text;
+        elOptions.innerHTML = '';
+
+        ['A', 'B', 'C', 'D'].forEach(letter => {
+            const opt = document.createElement('div');
+            opt.className = 'option-card';
+            if (answers[q.id] === letter) opt.classList.add('selected');
+            opt.innerHTML = `<span class="option-letter">${letter}</span>
+                             <span class="option-text">${q['option_' + letter.toLowerCase()]}</span>`;
+            opt.addEventListener('click', () => {
+                answers[q.id] = letter;
+                render();
+            });
+            elOptions.appendChild(opt);
+        });
+
+        elCounter.textContent = `Question ${currentIdx + 1} / ${questions.length}`;
+        elProgress.style.width = `${((currentIdx + 1) / questions.length) * 100}%`;
+
+        elPrev.classList.toggle('hidden', currentIdx === 0);
+        const isLast = currentIdx === questions.length - 1;
+        elNext.classList.toggle('hidden', isLast);
+        elSubmit.classList.toggle('hidden', !isLast);
+    }
+
+    function animateCard() {
+        elCard.style.animation = 'none';
+        void elCard.offsetWidth;
+        elCard.style.animation = 'slideIn 0.4s ease';
+    }
+
+    elNext.addEventListener('click', () => {
+        if (currentIdx < questions.length - 1) {
+            currentIdx++;
+            render();
+            animateCard();
+        }
+    });
+
+    elPrev.addEventListener('click', () => {
+        if (currentIdx > 0) {
+            currentIdx--;
+            render();
+            animateCard();
+        }
+    });
+
+    elSubmit.addEventListener('click', () => submitQuiz(false));
+
+    async function submitQuiz(auto) {
+        if (submitted) return;
+        if (!auto && !confirm('Submit your quiz? You cannot change answers after this.')) return;
+        submitted = true;
+
+        try {
+            const res = await fetch('/submit_quiz', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({answers})
+            });
+            const j = await res.json();
+            if (j.success) {
+                window.location.href = j.redirect;
+            } else {
+                alert('Submit failed: ' + (j.error || 'Unknown'));
+                submitted = false;
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
+            submitted = false;
+        }
+    }
+
+    // Anti-cheat: tab switch
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && !submitted) {
+            elOverlay.classList.remove('hidden');
+            setTimeout(() => submitQuiz(true), 1500);
+        }
+    });
+
+    // Disable copy / paste / right click
+    ['copy', 'cut', 'paste'].forEach(ev =>
+        document.addEventListener(ev, e => e.preventDefault())
+    );
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Prevent back navigation
+    history.pushState(null, '', location.href);
+    window.addEventListener('popstate', () => {
+        if (!submitted) {
+            history.pushState(null, '', location.href);
+            alert('You cannot go back during the quiz!');
+        }
+    });
+
+    // Warn before leaving
+    window.addEventListener('beforeunload', (e) => {
+        if (!submitted) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    // Init
+    startTimer();
+    render();
+</script>
+{% endblock %}
